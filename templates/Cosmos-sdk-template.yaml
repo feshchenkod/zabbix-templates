@@ -1,0 +1,94 @@
+zabbix_export:
+  version: '5.2'
+  date: '2021-11-29T13:02:02Z'
+  groups:
+    -
+      name: Templates/Modules
+  templates:
+    -
+      template: Nodes
+      name: Nodes
+      groups:
+        -
+          name: Templates/Modules
+      items:
+        -
+          name: 'Node: port listen'
+          key: 'net.tcp.listen[{$PORT}]'
+          triggers:
+            -
+              expression: '{avg(6m)}=0'
+              name: 'node: port down'
+              priority: HIGH
+        -
+          name: 'Node: proc running'
+          key: 'proc.num[{$NODE_PS}]'
+          triggers:
+            -
+              expression: '{avg(6m)}=0'
+              name: 'node: proc down'
+              priority: DISASTER
+        -
+          name: 'Node: peers count'
+          type: ZABBIX_ACTIVE
+          key: 'web.page.get[{$NODE}net_info]'
+          preprocessing:
+            -
+              type: REGEX
+              parameters:
+                - '"n_peers": "(.*)",'
+                - '{"n_peers": \1}'
+            -
+              type: JSONPATH
+              parameters:
+                - $.n_peers
+        -
+          name: 'Node: height'
+          type: ZABBIX_ACTIVE
+          key: 'web.page.get[{$NODE}status]'
+          preprocessing:
+            -
+              type: REGEX
+              parameters:
+                - '\n\s?\n([\s\S]*)'
+                - \1
+            -
+              type: JSONPATH
+              parameters:
+                - $.result.sync_info.latest_block_height
+          triggers:
+            -
+              expression: '{nodata(6m)}=1'
+              name: 'node: no data > 5 min'
+              priority: DISASTER
+            -
+              expression: '{last()}={last(#10)}'
+              name: 'node: no syncing for 10 min'
+              priority: WARNING
+            -
+              expression: '{last()}={last(#20)}'
+              name: 'node: no syncing for 20 min'
+              priority: HIGH
+        -
+          name: 'Node: pub-rpc height'
+          type: ZABBIX_ACTIVE
+          key: 'web.page.get[{$RPC}]'
+          preprocessing:
+            -
+              type: REGEX
+              parameters:
+                - '\n\s?\n([\s\S]*)'
+                - \1
+            -
+              type: JSONPATH
+              parameters:
+                - $.result.sync_info.latest_block_height
+  triggers:
+    -
+      expression: '{Nodes:web.page.get[{$RPC}].last()}-{Nodes:web.page.get[{$NODE}status].last()}>100 and {Nodes:web.page.get[{$RPC}].last(#2)}-{Nodes:web.page.get[{$NODE}status].last(#2)}>100'
+      name: 'node: behind > 100 blocks'
+      priority: WARNING
+    -
+      expression: '{Nodes:web.page.get[{$RPC}].avg(3m)}-{Nodes:web.page.get[{$NODE}status].avg(3m)}>200'
+      name: 'node: behind > 200 blocks'
+      priority: DISASTER

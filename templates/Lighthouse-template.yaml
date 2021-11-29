@@ -1,0 +1,222 @@
+zabbix_export:
+  version: '5.2'
+  date: '2021-11-29T12:38:45Z'
+  groups:
+    -
+      name: Lighthouse
+  templates:
+    -
+      template: Lighthouse
+      name: Lighthouse
+      groups:
+        -
+          name: Lighthouse
+      items:
+        -
+          name: 'eth2: connected peers'
+          type: DEPENDENT
+          key: libp2p_peer_connected_peers_total
+          delay: '0'
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - libp2p_peer_connected_peers_total
+                - ''
+          master_item:
+            key: 'web.page.get[127.0.0.1,metrics,5054]'
+          triggers:
+            -
+              expression: '{avg(10)}<2'
+              name: 'eth2: not connecting to peers for 10 min'
+              priority: HIGH
+        -
+          name: 'eth2: present epoch'
+          type: DEPENDENT
+          key: slotclock_present_epoch
+          delay: '0'
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - slotclock_present_epoch
+                - ''
+          master_item:
+            key: 'web.page.get[127.0.0.1,metrics,5054]'
+          triggers:
+            -
+              expression: '{last(#120)}={last()}'
+              name: 'eth2: stuck at epoch for 2 hours'
+              priority: AVERAGE
+        -
+          name: 'eth2: eth1 connected'
+          type: DEPENDENT
+          key: sync_eth1_connected
+          delay: '0'
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - sync_eth1_connected
+                - ''
+          master_item:
+            key: 'web.page.get[127.0.0.1,metrics,5054]'
+          triggers:
+            -
+              expression: '{avg(#5)}=0'
+              name: 'eth2: eth1 disconnected for 5 min'
+              priority: HIGH
+        -
+          name: 'eth2: synced'
+          type: DEPENDENT
+          key: sync_eth2_synced
+          delay: '0'
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - sync_eth2_synced
+                - ''
+          master_item:
+            key: 'web.page.get[127.0.0.1,metrics,5054]'
+          triggers:
+            -
+              expression: '{avg(10)}=0'
+              name: 'eth2: node not synced for 10 min'
+              priority: HIGH
+        -
+          name: 'eth2: validator balance'
+          type: DEPENDENT
+          key: validator.data.balance
+          delay: '0'
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.data.balance
+          master_item:
+            key: 'web.page.get[https://beaconcha.in/api/v1/validator/{$VALIDATORINDEX}]'
+          triggers:
+            -
+              expression: '{last(#120)}-{last()}>0'
+              name: 'eth2: node balance decreasing'
+              priority: INFO
+        -
+          name: 'eth2: validator slashed'
+          type: DEPENDENT
+          key: validator.data.slashed
+          delay: '0'
+          trends: '0'
+          value_type: TEXT
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.data.slashed
+          master_item:
+            key: 'web.page.get[https://beaconcha.in/api/v1/validator/{$VALIDATORINDEX}]'
+          triggers:
+            -
+              expression: '{last(#5)}<>"false"'
+              name: 'eth2: validator slashed 5m'
+              priority: HIGH
+        -
+          name: 'eth2: validator status'
+          type: DEPENDENT
+          key: validator.data.status
+          delay: '0'
+          trends: '0'
+          value_type: TEXT
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.data.status
+          master_item:
+            key: 'web.page.get[https://beaconcha.in/api/v1/validator/{$VALIDATORINDEX}]'
+          triggers:
+            -
+              expression: '{last(#5)}<>"active_online"'
+              name: 'eth2: validator not active 5m'
+              priority: HIGH
+        -
+          name: 'eth2: validators enabled'
+          type: DEPENDENT
+          key: vc_validators_enabled_count
+          delay: '0'
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - vc_validators_enabled_count
+                - ''
+          master_item:
+            key: 'web.page.get[http://127.0.0.1:5064/metrics]'
+          triggers:
+            -
+              expression: '{avg(15)}=0'
+              name: 'eth2: validator disabled to 15 min'
+              priority: HIGH
+        -
+          name: 'Eth2: beacon metrics'
+          type: ZABBIX_ACTIVE
+          key: 'web.page.get[127.0.0.1,metrics,5054]'
+          history: '0'
+          trends: '0'
+          value_type: TEXT
+          preprocessing:
+            -
+              type: REGEX
+              parameters:
+                - '\n\s?\n([\s\S]*)'
+                - \1
+        -
+          name: 'Eth2: validator metrics'
+          type: ZABBIX_ACTIVE
+          key: 'web.page.get[http://127.0.0.1:5064/metrics]'
+          history: '0'
+          trends: '0'
+          value_type: TEXT
+          preprocessing:
+            -
+              type: REGEX
+              parameters:
+                - '\n\s?\n([\s\S]*)'
+                - \1
+        -
+          name: 'eth2: attestation_effectiveness'
+          type: ZABBIX_ACTIVE
+          key: 'web.page.get[https://beaconcha.in/api/v1/validator/{$VALIDATORINDEX}/attestationeffectiveness]'
+          value_type: FLOAT
+          preprocessing:
+            -
+              type: REGEX
+              parameters:
+                - '\n\s?\n([\s\S]*)'
+                - \1
+            -
+              type: JSONPATH
+              parameters:
+                - $.data.attestation_effectiveness
+          triggers:
+            -
+              expression: '{last(#3)}<0.80'
+              name: 'eth2: validator effectivness < 80'
+              priority: HIGH
+            -
+              expression: '{last(#3)}<0.90'
+              name: 'eth2: validator effectivness < 90'
+              priority: AVERAGE
+        -
+          name: 'Eth2: validator info'
+          type: ZABBIX_ACTIVE
+          key: 'web.page.get[https://beaconcha.in/api/v1/validator/{$VALIDATORINDEX}]'
+          history: '0'
+          trends: '0'
+          value_type: TEXT
+          preprocessing:
+            -
+              type: REGEX
+              parameters:
+                - '\n\s?\n([\s\S]*)'
+                - \1
