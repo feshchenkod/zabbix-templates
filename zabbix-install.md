@@ -7,7 +7,7 @@ docker-compose up -d
 
 # Agent install
 
-Download package from repository `https://repo.zabbix.com/zabbix/5.2/ubuntu/pool/main/z/zabbix/`
+Download package from repository [https://repo.zabbix.com/zabbix/5.2/ubuntu/pool/main/z/zabbix/](https://repo.zabbix.com/zabbix/5.2/ubuntu/pool/main/z/zabbix/)
 ```bash
 dpkg -i zabbix-agent_5.2.*.deb
 ```

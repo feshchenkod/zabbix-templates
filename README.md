@@ -2,7 +2,7 @@
 Zabbix scripts and templates used for blockchain nodes monitoring.
 
 ## tornado-relayer
-Link templates with host: `Docker-template.yaml` and `Tornado-relayer-template.yaml`. Set `{$URL}` macros to relayer host, example `http://localhost/v1/status`, `https://domain/v1/status`.
+Link templates with host: [Docker-template.yaml](/templates/Docker-template.yaml) and [Tornado-relayer-template.yaml](/templates/Tornado-relayer-template.yaml). Set `{$URL}` macros to relayer host, example `http://localhost/v1/status`, `https://domain/v1/status`.
 
 Items:
 - [x] Docker containers monitoring
@@ -12,7 +12,7 @@ Items:
 - [ ] relayer container errors
 
 ## eth2 lighthouse:
-Link templates with host: `Docker-template.yaml` and `Lighthouse-template.yaml`. Set `{$VALIDATORINDEX}` macros to lighthouse host. 
+Link templates with host: [Docker-template.yaml](/templates/Docker-template.yaml) and [Lighthouse-template.yaml](/templates/Lighthouse-template.yaml). Set `{$VALIDATORINDEX}` macros to lighthouse host. 
 
 Items:
 - [x] beacon node synced
@@ -25,7 +25,7 @@ Items:
 - [ ] discovery rule for enabled validators
 
 ## cosmos-sdk
-Link template `Cosmos-sdk-template.yaml` and set mascros for each host:
+Link template [Cosmos-sdk-template.yaml](/templates/Cosmos-sdk-template.yaml) and set mascros for each host:
 * `{$NODE}` - node RPC URL, example `http://127.0.0.1:26657/`;
 * `{$PORT}` - node RPC port, example `26657`; 
 * `{$NODE_PS}` - running process name, example `gaiad`, `osmosisd`, `cosmovisor` etc;
