@@ -2,7 +2,7 @@
 Zabbix scripts and templates used for blockchain nodes monitoring.
 
 ## tornado-relayer
-Link templates with host: `Docker-template.yaml` and `Tornado-relayer-template.yaml`. Set `{$URL}` macros to relayer host.
+Link templates with host: `Docker-template.yaml` and `Tornado-relayer-template.yaml`. Set `{$URL}` macros to relayer host, example `http://localhost/v1/status`, `https://domain/v1/status`.
 
 Items:
 - [x] Docker containers monitoring
