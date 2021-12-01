@@ -1,0 +1,132 @@
+zabbix_export:
+  version: '5.2'
+  date: '2021-12-01T11:36:15Z'
+  groups:
+    -
+      name: Templates/Modules
+  templates:
+    -
+      template: Mina
+      name: Mina
+      groups:
+        -
+          name: Templates/Modules
+      items:
+        -
+          name: 'Mina: blockchain length'
+          type: DEPENDENT
+          key: blockchainLength
+          delay: '0'
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.data.daemonStatus.blockchainLength
+          master_item:
+            key: 'web.page.get[http://127.0.0.1:3095/graphql?query=query%20%7BdaemonStatus%7B%20syncStatus%20uptimeSecs%20blockchainLength%20%7D%7D]'
+          triggers:
+            -
+              expression: '{last(#30)}={last()} or {last(#29)}={last()}'
+              name: 'Mina: stuck at block'
+              priority: HIGH
+        -
+          name: 'Mina: peers count'
+          type: DEPENDENT
+          key: Coda_Network_peers
+          delay: '0'
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - Coda_Network_peers
+                - ''
+          master_item:
+            key: 'web.page.get[127.0.0.1,metrics,8322]'
+          triggers:
+            -
+              expression: '{avg(5)}<2'
+              name: 'Mina: no peers for 5 min'
+              priority: HIGH
+        -
+          name: 'Mina: sync status'
+          type: DEPENDENT
+          key: syncStatus
+          delay: '0'
+          trends: '0'
+          value_type: TEXT
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.data.daemonStatus.syncStatus
+          master_item:
+            key: 'web.page.get[http://127.0.0.1:3095/graphql?query=query%20%7BdaemonStatus%7B%20syncStatus%20uptimeSecs%20blockchainLength%20%7D%7D]'
+          triggers:
+            -
+              expression: '{last()}<>"SYNCED"'
+              name: 'Mina: node not synced'
+              priority: HIGH
+        -
+          name: 'Mina: uptime'
+          type: DEPENDENT
+          key: uptimeSecs
+          delay: '0'
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.data.daemonStatus.uptimeSecs
+          master_item:
+            key: 'web.page.get[http://127.0.0.1:3095/graphql?query=query%20%7BdaemonStatus%7B%20syncStatus%20uptimeSecs%20blockchainLength%20%7D%7D]'
+          triggers:
+            -
+              expression: '{last()}<240'
+              name: 'Mina: node was restarted'
+              priority: WARNING
+        -
+          name: 'Mina: explorer height'
+          key: 'web.page.get["https://api.minaexplorer.com/summary"]'
+          delay: 180s
+          preprocessing:
+            -
+              type: REGEX
+              parameters:
+                - '"blockchainLength": (.*),'
+                - '{"blockchainLength": \1}'
+            -
+              type: JSONPATH
+              parameters:
+                - $.blockchainLength
+        -
+          name: 'Mina: metrics'
+          type: ZABBIX_ACTIVE
+          key: 'web.page.get[127.0.0.1,metrics,8322]'
+          delay: 180s
+          history: '0'
+          trends: '0'
+          value_type: TEXT
+          preprocessing:
+            -
+              type: REGEX
+              parameters:
+                - '\n\s?\n([\s\S]*)'
+                - \1
+        -
+          name: 'Mina: graphql data'
+          type: ZABBIX_ACTIVE
+          key: 'web.page.get[http://127.0.0.1:3095/graphql?query=query%20%7BdaemonStatus%7B%20syncStatus%20uptimeSecs%20blockchainLength%20%7D%7D]'
+          delay: 180s
+          history: '0'
+          trends: '0'
+          value_type: TEXT
+          preprocessing:
+            -
+              type: REGEX
+              parameters:
+                - '{(.*)'
+                - '{\1'
+  triggers:
+    -
+      expression: '{Mina:web.page.get["https://api.minaexplorer.com/summary"].last()}-{Mina:blockchainLength.last()}>24'
+      name: 'Mina: node 25 blocks behind explorer'
+      priority: HIGH
