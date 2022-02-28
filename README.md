@@ -11,6 +11,22 @@ Items:
 - [x] parse error from status page
 - [ ] relayer container errors
 
+## RPC nodes (GETH, BSC, BOR, etc)
+Link template [RPC-nodes-template.yaml](/templates/RPC-nodes-template.yaml) and set macros for each host:
+* `{$RPC_NODES}` - list of all nodes on the host in JSON-format: `[{"name": "GETH"},{"name": "XDAI"}]` or `[{"name": "BSC"}]`;
+
+Set for each blockchain node in the `RPC_NODES` list `_URL` and `_PUB` macros. Example for `GETH` (the same prefix as the name in the `RPC_NODES` list):
+* `{$GETH_URL}` - node RPC url: `https://geth-node.url/`; 
+* `{$GETH_PUB}` - public RPC for height comparison: `https://public-rpc.url/`.
+
+Items:
+- [x] Node RPC height
+- [x] Public RPC height
+- [x] Height diff (pub.height - local.height)
+- [x] synchronization status
+- [x] number of currently connected peers
+
+
 ## eth2 lighthouse:
 Link templates with host: [Docker-template.yaml](/templates/Docker-template.yaml) and [Lighthouse-template.yaml](/templates/Lighthouse-template.yaml). Set `{$VALIDATORINDEX}` macros to lighthouse host. 
 
@@ -25,7 +41,7 @@ Items:
 - [ ] discovery rule for enabled validators
 
 ## cosmos-sdk
-Link template [Cosmos-sdk-template.yaml](/templates/Cosmos-sdk-template.yaml) and set mascros for each host:
+Link template [Cosmos-sdk-template.yaml](/templates/Cosmos-sdk-template.yaml) and set macros for each host:
 * `{$NODE}` - node RPC URL, example `http://127.0.0.1:26657/`;
 * `{$PORT}` - node RPC port, example `26657`; 
 * `{$NODE_PS}` - running process name, example `gaiad`, `osmosisd`, `cosmovisor` etc;

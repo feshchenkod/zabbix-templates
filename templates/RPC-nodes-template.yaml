@@ -1,0 +1,230 @@
+zabbix_export:
+  version: '5.2'
+  date: '2022-02-28T11:33:30Z'
+  groups:
+    -
+      name: Templates/Applications
+  templates:
+    -
+      template: 'RPC nodes'
+      name: 'RPC nodes'
+      groups:
+        -
+          name: Templates/Applications
+      discovery_rules:
+        -
+          name: 'RPC: nodes'
+          type: SCRIPT
+          key: key.placeholder
+          params: 'return 1'
+          item_prototypes:
+            -
+              name: 'RPC: {{#NAME}.regsub("(\w+)", "\1")} diff'
+              type: CALCULATED
+              key: 'rpc.diff[{#NAME}]'
+              delay: 20s
+              value_type: FLOAT
+              params: 'last(rpc.height.pub[{#NAME}])-last(rpc.height[{#NAME}])'
+              application_prototypes:
+                -
+                  name: RPC
+              trigger_prototypes:
+                -
+                  expression: '{avg(3)}>10 and {last()}>10'
+                  name: 'RPC: {{#NAME}.regsub("(\w+)", "\1")} behind > 10 blocks'
+                  priority: AVERAGE
+                  manual_close: 'YES'
+            -
+              name: 'RPC: {{#NAME}.regsub("(\w+)", "\1")} height pub'
+              type: HTTP_AGENT
+              key: 'rpc.height.pub[{#NAME}]'
+              delay: 20s
+              application_prototypes:
+                -
+                  name: RPC
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.body.result
+                -
+                  type: REGEX
+                  parameters:
+                    - '0x(.*)'
+                    - \1
+                -
+                  type: HEX_TO_DECIMAL
+                  parameters:
+                    - ''
+              url: '{${{#NAME}.regsub("(\w+)", "\1")}_PUB}'
+              posts: '{"jsonrpc": "2.0", "id": 1, "method": "eth_blockNumber"}'
+              post_type: JSON
+              request_method: POST
+              output_format: JSON
+            -
+              name: 'RPC: {{#NAME}.regsub("(\w+)", "\1")} height'
+              type: HTTP_AGENT
+              key: 'rpc.height[{#NAME}]'
+              delay: 20s
+              application_prototypes:
+                -
+                  name: RPC
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.body.result
+                -
+                  type: REGEX
+                  parameters:
+                    - '0x(.*)'
+                    - \1
+                -
+                  type: HEX_TO_DECIMAL
+                  parameters:
+                    - ''
+              url: '{${{#NAME}.regsub("(\w+)", "\1")}_URL}'
+              posts: '{"jsonrpc": "2.0", "id": 1, "method": "eth_blockNumber"}'
+              post_type: JSON
+              request_method: POST
+              output_format: JSON
+            -
+              name: 'RPC: {{#NAME}.regsub("(\w+)", "\1")} peers'
+              type: HTTP_AGENT
+              key: 'rpc.peers[{#NAME}]'
+              application_prototypes:
+                -
+                  name: RPC
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.body.result
+                -
+                  type: REGEX
+                  parameters:
+                    - '0x(.*)'
+                    - \1
+                -
+                  type: HEX_TO_DECIMAL
+                  parameters:
+                    - ''
+              url: '{${{#NAME}.regsub("(\w+)", "\1")}_URL}'
+              posts: '{"jsonrpc": "2.0", "id": 1, "method": "net_peerCount"}'
+              post_type: JSON
+              request_method: POST
+              output_format: JSON
+            -
+              name: 'RPC: {{#NAME}.regsub("(\w+)", "\1")} synced'
+              type: HTTP_AGENT
+              key: 'rpc.synced[{#NAME}]'
+              delay: 20s
+              trends: '0'
+              value_type: TEXT
+              application_prototypes:
+                -
+                  name: RPC
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.body.result
+                -
+                  type: REGEX
+                  parameters:
+                    - 'false'
+                    - 'true'
+              url: '{${{#NAME}.regsub("(\w+)", "\1")}_URL}'
+              posts: '{"jsonrpc": "2.0", "id": 1, "method": "eth_syncing"}'
+              post_type: JSON
+              request_method: POST
+              output_format: JSON
+              trigger_prototypes:
+                -
+                  expression: '{last(#3)}<>"true" and {last()}<>"true"'
+                  name: 'RPC: {{#NAME}.regsub("(\w+)", "\1")} not synced'
+                  priority: AVERAGE
+                  manual_close: 'YES'
+          graph_prototypes:
+            -
+              name: 'RPC: {{#NAME}.regsub("(\w+)", "\1")} diff'
+              graph_items:
+                -
+                  sortorder: '1'
+                  drawtype: BOLD_LINE
+                  color: 199C0D
+                  item:
+                    host: 'RPC nodes'
+                    key: 'rpc.diff[{#NAME}]'
+            -
+              name: 'RPC: {{#NAME}.regsub("(\w+)", "\1")} height'
+              graph_items:
+                -
+                  sortorder: '1'
+                  drawtype: BOLD_LINE
+                  color: 199C0D
+                  item:
+                    host: 'RPC nodes'
+                    key: 'rpc.height[{#NAME}]'
+                -
+                  sortorder: '2'
+                  drawtype: BOLD_LINE
+                  color: F63100
+                  item:
+                    host: 'RPC nodes'
+                    key: 'rpc.height.pub[{#NAME}]'
+          lld_macro_paths:
+            -
+              lld_macro: '{#NAME}'
+              path: $..name
+          preprocessing:
+            -
+              type: REGEX
+              parameters:
+                - '.*'
+                - '{$RPC_NODES}'
+      dashboards:
+        -
+          name: RPC
+          widgets:
+            -
+              type: GRAPH_PROTOTYPE
+              name: diff
+              x: '12'
+              width: '12'
+              height: '12'
+              fields:
+                -
+                  type: INTEGER
+                  name: columns
+                  value: '1'
+                -
+                  type: INTEGER
+                  name: rows
+                  value: '3'
+                -
+                  type: GRAPH_PROTOTYPE
+                  name: graphid
+                  value:
+                    name: 'RPC: {{#NAME}.regsub("(\w+)", "\1")} diff'
+                    host: 'RPC nodes'
+            -
+              type: GRAPH_PROTOTYPE
+              name: Height
+              width: '12'
+              height: '12'
+              fields:
+                -
+                  type: INTEGER
+                  name: columns
+                  value: '1'
+                -
+                  type: INTEGER
+                  name: rows
+                  value: '3'
+                -
+                  type: GRAPH_PROTOTYPE
+                  name: graphid
+                  value:
+                    name: 'RPC: {{#NAME}.regsub("(\w+)", "\1")} height'
+                    host: 'RPC nodes'
