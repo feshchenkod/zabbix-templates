@@ -1,6 +1,6 @@
 zabbix_export:
   version: '5.2'
-  date: '2022-02-28T11:33:30Z'
+  date: '2022-03-05T02:03:06Z'
   groups:
     -
       name: Templates/Applications
@@ -88,6 +88,12 @@ zabbix_export:
               post_type: JSON
               request_method: POST
               output_format: JSON
+              trigger_prototypes:
+                -
+                  expression: '{nodata(180)}=1'
+                  name: 'RPC: {{#NAME}.regsub("(\w+)", "\1")} no data (in 3 min)'
+                  priority: AVERAGE
+                  manual_close: 'YES'
             -
               name: 'RPC: {{#NAME}.regsub("(\w+)", "\1")} peers'
               type: HTTP_AGENT
@@ -196,12 +202,12 @@ zabbix_export:
               fields:
                 -
                   type: INTEGER
-                  name: columns
-                  value: '1'
-                -
-                  type: INTEGER
                   name: rows
                   value: '3'
+                -
+                  type: INTEGER
+                  name: columns
+                  value: '1'
                 -
                   type: GRAPH_PROTOTYPE
                   name: graphid
@@ -216,12 +222,12 @@ zabbix_export:
               fields:
                 -
                   type: INTEGER
-                  name: columns
-                  value: '1'
-                -
-                  type: INTEGER
                   name: rows
                   value: '3'
+                -
+                  type: INTEGER
+                  name: columns
+                  value: '1'
                 -
                   type: GRAPH_PROTOTYPE
                   name: graphid
