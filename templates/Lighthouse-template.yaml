@@ -1,6 +1,6 @@
 zabbix_export:
   version: '5.2'
-  date: '2021-11-29T12:38:45Z'
+  date: '2022-04-14T13:07:38Z'
   groups:
     -
       name: Lighthouse
@@ -11,17 +11,23 @@ zabbix_export:
       groups:
         -
           name: Lighthouse
+      applications:
+        -
+          name: lighthouse
       items:
         -
           name: 'eth2: connected peers'
           type: DEPENDENT
           key: libp2p_peer_connected_peers_total
           delay: '0'
+          applications:
+            -
+              name: lighthouse
           preprocessing:
             -
               type: PROMETHEUS_PATTERN
               parameters:
-                - libp2p_peer_connected_peers_total
+                - libp2p_peers
                 - ''
           master_item:
             key: 'web.page.get[127.0.0.1,metrics,5054]'
@@ -35,6 +41,9 @@ zabbix_export:
           type: DEPENDENT
           key: slotclock_present_epoch
           delay: '0'
+          applications:
+            -
+              name: lighthouse
           preprocessing:
             -
               type: PROMETHEUS_PATTERN
@@ -53,6 +62,9 @@ zabbix_export:
           type: DEPENDENT
           key: sync_eth1_connected
           delay: '0'
+          applications:
+            -
+              name: lighthouse
           preprocessing:
             -
               type: PROMETHEUS_PATTERN
@@ -71,6 +83,9 @@ zabbix_export:
           type: DEPENDENT
           key: sync_eth2_synced
           delay: '0'
+          applications:
+            -
+              name: lighthouse
           preprocessing:
             -
               type: PROMETHEUS_PATTERN
@@ -85,65 +100,50 @@ zabbix_export:
               name: 'eth2: node not synced for 10 min'
               priority: HIGH
         -
-          name: 'eth2: validator balance'
-          type: DEPENDENT
-          key: validator.data.balance
-          delay: '0'
-          preprocessing:
-            -
-              type: JSONPATH
-              parameters:
-                - $.data.balance
-          master_item:
-            key: 'web.page.get[https://beaconcha.in/api/v1/validator/{$VALIDATORINDEX}]'
-          triggers:
-            -
-              expression: '{last(#120)}-{last()}>0'
-              name: 'eth2: node balance decreasing'
-              priority: INFO
-        -
-          name: 'eth2: validator slashed'
-          type: DEPENDENT
-          key: validator.data.slashed
-          delay: '0'
+          name: 'Eth2: validators list'
+          type: HTTP_AGENT
+          key: validators.list
+          history: '0'
           trends: '0'
           value_type: TEXT
+          applications:
+            -
+              name: lighthouse
           preprocessing:
             -
               type: JSONPATH
               parameters:
-                - $.data.slashed
-          master_item:
-            key: 'web.page.get[https://beaconcha.in/api/v1/validator/{$VALIDATORINDEX}]'
-          triggers:
+                - $.body.data
+          url: 'http://{$VC.API}/lighthouse/validators'
+          headers:
             -
-              expression: '{last(#5)}<>"false"'
-              name: 'eth2: validator slashed 5m'
-              priority: HIGH
+              name: Authorization
+              value: '{$LH.TOKEN}'
+          output_format: JSON
         -
-          name: 'eth2: validator status'
+          name: 'eth2: validators attester current'
           type: DEPENDENT
-          key: validator.data.status
+          key: vc_beacon_attester_count_current
           delay: '0'
-          trends: '0'
-          value_type: TEXT
+          applications:
+            -
+              name: lighthouse
           preprocessing:
             -
-              type: JSONPATH
+              type: PROMETHEUS_PATTERN
               parameters:
-                - $.data.status
+                - 'vc_beacon_attester_count{task="current_epoch"}'
+                - ''
           master_item:
-            key: 'web.page.get[https://beaconcha.in/api/v1/validator/{$VALIDATORINDEX}]'
-          triggers:
-            -
-              expression: '{last(#5)}<>"active_online"'
-              name: 'eth2: validator not active 5m'
-              priority: HIGH
+            key: 'web.page.get[http://127.0.0.1:5064/metrics]'
         -
           name: 'eth2: validators enabled'
           type: DEPENDENT
           key: vc_validators_enabled_count
           delay: '0'
+          applications:
+            -
+              name: lighthouse
           preprocessing:
             -
               type: PROMETHEUS_PATTERN
@@ -152,11 +152,22 @@ zabbix_export:
                 - ''
           master_item:
             key: 'web.page.get[http://127.0.0.1:5064/metrics]'
-          triggers:
+        -
+          name: 'eth2: validators total'
+          type: DEPENDENT
+          key: vc_validators_total_count
+          delay: '0'
+          applications:
             -
-              expression: '{avg(15)}=0'
-              name: 'eth2: validator disabled to 15 min'
-              priority: HIGH
+              name: lighthouse
+          preprocessing:
+            -
+              type: PROMETHEUS_PATTERN
+              parameters:
+                - vc_validators_enabled_count
+                - ''
+          master_item:
+            key: 'web.page.get[http://127.0.0.1:5064/metrics]'
         -
           name: 'Eth2: beacon metrics'
           type: ZABBIX_ACTIVE
@@ -164,6 +175,9 @@ zabbix_export:
           history: '0'
           trends: '0'
           value_type: TEXT
+          applications:
+            -
+              name: lighthouse
           preprocessing:
             -
               type: REGEX
@@ -177,6 +191,9 @@ zabbix_export:
           history: '0'
           trends: '0'
           value_type: TEXT
+          applications:
+            -
+              name: lighthouse
           preprocessing:
             -
               type: REGEX
@@ -184,10 +201,14 @@ zabbix_export:
                 - '\n\s?\n([\s\S]*)'
                 - \1
         -
-          name: 'eth2: attestation_effectiveness'
+          name: 'Eth2: eth1 synced percentage'
           type: ZABBIX_ACTIVE
-          key: 'web.page.get[https://beaconcha.in/api/v1/validator/{$VALIDATORINDEX}/attestationeffectiveness]'
+          key: 'web.page.get[http://localhost:5052/lighthouse/eth1/syncing]'
           value_type: FLOAT
+          units: '%'
+          applications:
+            -
+              name: lighthouse
           preprocessing:
             -
               type: REGEX
@@ -197,26 +218,168 @@ zabbix_export:
             -
               type: JSONPATH
               parameters:
-                - $.data.attestation_effectiveness
+                - $.data.eth1_node_sync_status_percentage
           triggers:
             -
-              expression: '{last(#3)}<0.80'
-              name: 'eth2: validator effectivness < 80'
-              priority: HIGH
-            -
-              expression: '{last(#3)}<0.90'
-              name: 'eth2: validator effectivness < 90'
+              expression: '{last()}<99'
+              name: 'eth2: eth1 not synced'
               priority: AVERAGE
-        -
-          name: 'Eth2: validator info'
-          type: ZABBIX_ACTIVE
-          key: 'web.page.get[https://beaconcha.in/api/v1/validator/{$VALIDATORINDEX}]'
-          history: '0'
-          trends: '0'
-          value_type: TEXT
-          preprocessing:
             -
-              type: REGEX
-              parameters:
-                - '\n\s?\n([\s\S]*)'
-                - \1
+              expression: '{nodata(3m)}=1'
+              name: 'eth2: no data from validator API'
+              priority: HIGH
+      discovery_rules:
+        -
+          name: 'Discover validators'
+          type: DEPENDENT
+          key: vc_validators_list
+          delay: '0'
+          lifetime: 1d
+          item_prototypes:
+            -
+              name: 'vc_eth2: balance {{#NAME}.regsub("(^.{0,48})", \1)}'
+              type: DEPENDENT
+              key: 'eth2.validator.balance[{#NAME}]'
+              delay: '0'
+              applications:
+                -
+                  name: lighthouse
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.data.balance
+              master_item:
+                key: 'web.page.get[{$BEACON.EXPLORER}/api/v1/validator/{#NAME}]'
+              trigger_prototypes:
+                -
+                  expression: '{last(#5)}>{last()}'
+                  name: 'eth2: balance decreasing {{#NAME}.regsub("(^.{0,48})", \1)}'
+                  priority: AVERAGE
+            -
+              name: 'vc_eth2: {{#NAME}.regsub("(^.{0,48})", \1)}'
+              type: DEPENDENT
+              key: 'eth2.validator.enabled[{#NAME}]'
+              delay: '0'
+              history: 30d
+              trends: '0'
+              status: DISABLED
+              discover: NO_DISCOVER
+              value_type: TEXT
+              applications:
+                -
+                  name: lighthouse
+              preprocessing:
+                -
+                  type: REGEX
+                  parameters:
+                    - '.*'
+                    - '{#ENABLED}'
+              master_item:
+                key: validators.list
+            -
+              name: 'vc_eth2: slashed {{#NAME}.regsub("(^.{0,48})", \1)}'
+              type: DEPENDENT
+              key: 'eth2.validator.slashed[{#NAME}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              applications:
+                -
+                  name: lighthouse
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.data.slashed
+              master_item:
+                key: 'web.page.get[{$BEACON.EXPLORER}/api/v1/validator/{#NAME}]'
+              trigger_prototypes:
+                -
+                  expression: '{last()}<>"false"'
+                  name: 'eth2: validator slashed {{#NAME}.regsub("(^.{0,48})", \1)}'
+                  priority: HIGH
+            -
+              name: 'vc_eth2: status {{#NAME}.regsub("(^.{0,48})", \1)}'
+              type: DEPENDENT
+              key: 'eth2.validator.status[{#NAME}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              applications:
+                -
+                  name: lighthouse
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.data.status
+              master_item:
+                key: 'web.page.get[{$BEACON.EXPLORER}/api/v1/validator/{#NAME}]'
+              trigger_prototypes:
+                -
+                  expression: |
+                    {last()}<>"active_online" and 
+                    {last(#2)}<>"active_online"
+                  name: 'eth2: validator not active {{#NAME}.regsub("(^.{0,48})", \1)}'
+                  priority: HIGH
+            -
+              name: 'vc_eth2: validator effectiveness {{#NAME}.regsub("(^.{0,48})", \1)}'
+              type: ZABBIX_ACTIVE
+              key: 'web.page.get[{$BEACON.EXPLORER}/api/v1/validator/{#NAME}/attestationeffectiveness]'
+              delay: 120m
+              value_type: FLOAT
+              applications:
+                -
+                  name: lighthouse
+              preprocessing:
+                -
+                  type: REGEX
+                  parameters:
+                    - '\n\s?\n([\s\S]*)'
+                    - \1
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.data.attestation_effectiveness
+              trigger_prototypes:
+                -
+                  expression: '{last()}<85'
+                  name: 'eth2: validator effectiveness <80 {{#NAME}.regsub("(^.{0,48})", \1)}'
+                  priority: HIGH
+            -
+              name: 'vc_eth2: validator info {{#NAME}.regsub("(^.{0,48})", \1)}'
+              type: ZABBIX_ACTIVE
+              key: 'web.page.get[{$BEACON.EXPLORER}/api/v1/validator/{#NAME}]'
+              delay: 15m
+              history: '0'
+              trends: '0'
+              value_type: TEXT
+              applications:
+                -
+                  name: lighthouse
+              preprocessing:
+                -
+                  type: REGEX
+                  parameters:
+                    - '\n\s?\n([\s\S]*)'
+                    - \1
+          master_item:
+            key: validators.list
+          lld_macro_paths:
+            -
+              lld_macro: '{#ENABLED}'
+              path: $.enabled
+            -
+              lld_macro: '{#NAME}'
+              path: $.voting_pubkey
+  triggers:
+    -
+      expression: '{Lighthouse:vc_validators_enabled_count.last()}<>{Lighthouse:vc_validators_total_count.last()}'
+      name: 'eth2: validator disabled'
+      priority: HIGH
+    -
+      expression: '{Lighthouse:vc_beacon_attester_count_current.last()}<>{Lighthouse:vc_validators_total_count.last()}'
+      name: 'eth2: validator not attesting'
+      priority: AVERAGE
+      manual_close: 'YES'

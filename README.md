@@ -29,17 +29,20 @@ Items:
 - [ ] relayer container errors
 
 ## eth2 lighthouse:
-Link templates with host: [Docker-template.yaml](/templates/Docker-template.yaml) and [Lighthouse-template.yaml](/templates/Lighthouse-template.yaml). Set `{$VALIDATORINDEX}` macros to lighthouse host. 
+Link templates with host: [Docker-template.yaml](/templates/Docker-template.yaml) and [Lighthouse-template.yaml](/templates/Lighthouse-template.yaml). Set macros for each lighthouse host:
+* `{$BEACON.EXPLORER}` - URL, example `https://beacon.gnosischain.com` or `https://beaconcha.in`;
+* `{$VC.API}` - IP:PORT for access to lighthouse validator API from the monitoring server, example `10.0.0.4:5062`.
 
 Items:
 - [x] beacon node synced
 - [x] eth1 node connected
+- [x] eth1 node synced
 - [x] validator enabled
 - [x] validator balance
 - [x] validator status
 - [x] validator slashed
 - [x] validator attestation effectiveness
-- [ ] discovery rule for enabled validators
+- [x] discovery rule for enabled validators
 
 ## cosmos-sdk
 Link template [Cosmos-sdk-template.yaml](/templates/Cosmos-sdk-template.yaml) and set macros for each host:
