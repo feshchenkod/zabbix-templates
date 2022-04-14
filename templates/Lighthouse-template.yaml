@@ -1,6 +1,6 @@
 zabbix_export:
   version: '5.2'
-  date: '2022-04-14T13:07:38Z'
+  date: '2022-04-14T22:44:32Z'
   groups:
     -
       name: Lighthouse
@@ -256,6 +256,7 @@ zabbix_export:
                   expression: '{last(#5)}>{last()}'
                   name: 'eth2: balance decreasing {{#NAME}.regsub("(^.{0,48})", \1)}'
                   priority: AVERAGE
+                  manual_close: 'YES'
             -
               name: 'vc_eth2: {{#NAME}.regsub("(^.{0,48})", \1)}'
               type: DEPENDENT
@@ -299,6 +300,7 @@ zabbix_export:
                   expression: '{last()}<>"false"'
                   name: 'eth2: validator slashed {{#NAME}.regsub("(^.{0,48})", \1)}'
                   priority: HIGH
+                  manual_close: 'YES'
             -
               name: 'vc_eth2: status {{#NAME}.regsub("(^.{0,48})", \1)}'
               type: DEPENDENT
@@ -323,6 +325,7 @@ zabbix_export:
                     {last(#2)}<>"active_online"
                   name: 'eth2: validator not active {{#NAME}.regsub("(^.{0,48})", \1)}'
                   priority: HIGH
+                  manual_close: 'YES'
             -
               name: 'vc_eth2: validator effectiveness {{#NAME}.regsub("(^.{0,48})", \1)}'
               type: ZABBIX_ACTIVE
@@ -344,9 +347,10 @@ zabbix_export:
                     - $.data.attestation_effectiveness
               trigger_prototypes:
                 -
-                  expression: '{last()}<85'
-                  name: 'eth2: validator effectiveness <80 {{#NAME}.regsub("(^.{0,48})", \1)}'
+                  expression: '{last()}<0.85'
+                  name: 'eth2: validator effectiveness <85 {{#NAME}.regsub("(^.{0,48})", \1)}'
                   priority: HIGH
+                  manual_close: 'YES'
             -
               name: 'vc_eth2: validator info {{#NAME}.regsub("(^.{0,48})", \1)}'
               type: ZABBIX_ACTIVE
